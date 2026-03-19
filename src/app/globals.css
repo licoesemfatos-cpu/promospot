@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+  overflow: hidden; /* Evita scroll na página inteira no mobile */
+}
+
+/* Ajustes Leaflet */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  z-index: 1;
+}
+
+.leaflet-bottom.leaflet-right {
+  bottom: 80px; /* Sobe os créditos do mapa para não bater no botão */
+}
