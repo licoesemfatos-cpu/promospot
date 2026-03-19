@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { Plus, Search, User, Map as MapIcon, Award, Loader2, Camera } from 'lucide-react'
+import { Plus, Search, User, Map as MapIcon, Award, Loader2, Camera, Tag, MapPin, CheckCircle2, Navigation } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 
@@ -22,8 +22,9 @@ export default function Home() {
   // Form states
   const [itemName, setItemName] = useState('')
   const [price, setPrice] = useState('')
-  const [category, setCategory] = useState('mercado')
+  const [unitType, setUnitType] = useState('unidade')
   const [spotName, setSpotName] = useState('')
+  const [spotCategory, setSpotCategory] = useState('mercado')
 
   useEffect(() => {
     fetchDeals()
@@ -51,7 +52,7 @@ export default function Home() {
 
   async function handlePost() {
     if (!itemName || !price || !spotName || !userPos) {
-      alert('Por favor, preencha todos os campos e permita a geolocalização.')
+      alert('Por favor, preencha todos os campos.')
       return
     }
 
@@ -62,7 +63,7 @@ export default function Home() {
         .from('spots')
         .insert({
           name: spotName,
-          category,
+          category: spotCategory,
           latitude: userPos[0],
           longitude: userPos[1]
         })
@@ -78,7 +79,7 @@ export default function Home() {
           spot_id: spot.id,
           item_name: itemName,
           price: parseFloat(price),
-          category
+          unit_type: unitType
         })
 
       if (dealError) throw dealError
@@ -96,74 +97,97 @@ export default function Home() {
   }
 
   return (
-    <main className="flex flex-col h-screen bg-white">
-      {/* Header com Busca */}
-      <header className="p-4 bg-white border-b sticky top-0 z-50 flex items-center gap-2">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-          <input 
-            type="text" 
-            placeholder="Buscar ofertas em Florianópolis..." 
-            className="w-full bg-slate-100 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-          />
+    <main className="flex flex-col h-screen bg-[#F8F9FA] font-sans">
+      
+      {/* Search Header - Floating Style */}
+      <div className="absolute top-4 left-4 right-4 z-[60] pointer-events-none">
+        <div className="flex gap-2 pointer-events-auto">
+          <div className="flex-1 bg-white shadow-xl rounded-2xl flex items-center px-4 py-3 border border-slate-100">
+            <Search className="text-slate-400 w-5 h-5 mr-3" />
+            <input 
+              type="text" 
+              placeholder="Buscar ofertas próximas..." 
+              className="bg-transparent w-full text-slate-700 font-medium focus:outline-none placeholder:text-slate-400"
+            />
+          </div>
+          <button className="bg-blue-500 shadow-xl rounded-2xl p-3 text-white">
+            <User className="w-6 h-6" />
+          </button>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1 bg-orange-100 rounded-full text-orange-600 font-bold text-xs">
-          <Award className="w-3 h-3" />
-          <span>Nível 1</span>
-        </div>
-      </header>
 
-      {/* Área Principal */}
-      <section className="flex-1 relative overflow-hidden bg-slate-50">
+        {/* Floating Banner (Waze Style) */}
+        {deals.length === 0 && !isLoading && (
+          <div className="mt-3 bg-white/95 backdrop-blur shadow-lg p-4 rounded-2xl border border-orange-100 flex items-center gap-4 animate-in slide-in-from-top-4 duration-500 pointer-events-auto">
+            <div className="bg-orange-500 p-2 rounded-xl">
+              <Navigation className="text-white w-5 h-5" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-bold text-slate-800">Florianópolis está vazia!</h3>
+              <p className="text-xs text-slate-500">Seja o primeiro a alertar uma oferta.</p>
+            </div>
+            <button 
+              onClick={() => setIsRegistering(true)}
+              className="bg-orange-50 text-orange-600 px-3 py-1.5 rounded-lg font-bold text-xs"
+            >
+              Começar
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Main Content Area */}
+      <section className="flex-1 relative overflow-hidden">
         {activeTab === 'map' ? (
           <>
             <Map deals={deals} />
             
+            {/* Action Button (Waze FAB) */}
             <button 
               onClick={() => setIsRegistering(true)}
-              className="absolute bottom-6 right-6 z-50 bg-orange-500 text-white p-4 rounded-full shadow-lg hover:bg-orange-600 transition-colors flex items-center gap-2 group"
+              className="absolute bottom-8 right-8 z-[60] bg-[#458CFF] text-white p-5 rounded-full shadow-[0_12px_40px_rgba(69,140,255,0.4)] hover:scale-110 active:scale-95 transition-all flex items-center justify-center border-4 border-white"
             >
-              <Plus className="w-6 h-6" />
-              <span className="hidden group-hover:inline pr-2 font-medium">Registrar Promoção</span>
+              <Plus className="w-8 h-8 stroke-[3]" />
             </button>
-
-            {deals.length === 0 && !isLoading && (
-              <div className="absolute top-4 left-4 right-4 z-40 bg-white/90 backdrop-blur p-3 rounded-xl border border-orange-200 shadow-sm flex items-start gap-3 animate-in fade-in duration-500">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <Award className="w-5 h-5 text-orange-600" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800">Seja o primeiro Caçador!</h3>
-                  <p className="text-xs text-slate-600 leading-tight">Poste uma oferta em Florianópolis e ganhe o Selo de Fundador.</p>
-                </div>
-              </div>
-            )}
           </>
-        ) : activeTab === 'deals' ? (
-          <div className="h-full overflow-y-auto p-4 space-y-4">
-            <h2 className="text-lg font-bold text-slate-800 px-1">Ofertas Recentes</h2>
+        ) : (
+          <div className="h-full pt-28 pb-20 px-4 overflow-y-auto space-y-4">
+            <div className="flex justify-between items-center px-2">
+              <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">Radar de Ofertas</h2>
+              <span className="text-xs font-bold text-slate-400">{deals.length} itens encontrados</span>
+            </div>
+
             {isLoading ? (
-              <div className="flex justify-center p-8 text-orange-500"><Loader2 className="animate-spin w-8 h-8" /></div>
-            ) : deals.length === 0 ? (
-              <p className="text-center text-slate-400 text-sm p-10">Nenhuma oferta encontrada na região.</p>
+              <div className="flex justify-center p-12"><Loader2 className="animate-spin text-blue-500 w-10 h-10" /></div>
             ) : (
               deals.map((deal) => (
-                <div key={deal.id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex gap-4 animate-in slide-in-from-bottom-2 duration-300">
-                  <div className="w-20 h-20 bg-orange-50 rounded-xl flex items-center justify-center text-orange-500 font-bold">
-                    {deal.spots?.category?.charAt(0).toUpperCase()}
+                <div key={deal.id} className="bg-white p-5 rounded-[2.5rem] shadow-sm border border-slate-100 flex gap-5 hover:shadow-md transition-shadow group">
+                  <div className="w-24 h-24 bg-slate-50 rounded-[2rem] flex flex-col items-center justify-center relative overflow-hidden">
+                     <Tag className="text-blue-200 w-10 h-10" />
+                     <span className="absolute bottom-0 left-0 right-0 bg-blue-500 text-white text-[10px] py-1 text-center font-bold uppercase">
+                       {deal.unit_type}
+                     </span>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start">
-                      <span className="text-[10px] font-bold text-orange-500 uppercase tracking-tighter">{deal.spots?.category}</span>
-                      <span className="text-xs text-slate-400 italic">há pouco</span>
+                  <div className="flex-1 py-1">
+                    <div className="flex justify-between">
+                      <div className="flex items-center gap-1 text-emerald-600 font-bold text-[10px] uppercase">
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span>Verificado</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{deal.spots?.category}</span>
                     </div>
-                    <h4 className="font-bold text-slate-800 leading-tight">{deal.item_name}</h4>
-                    <p className="text-sm text-slate-500">{deal.spots?.name}</p>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="text-lg font-black text-slate-900">R$ {deal.price.toFixed(2)}</span>
-                      <button className="flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
-                        <span>👍</span>
-                        <span>Confirmar</span>
+                    <h4 className="text-lg font-bold text-slate-800 mt-1 leading-tight group-hover:text-blue-600 transition-colors">{deal.item_name}</h4>
+                    <div className="flex items-center gap-1.5 text-slate-400 mt-1">
+                      <MapPin className="w-3 h-3" />
+                      <p className="text-sm font-medium">{deal.spots?.name}</p>
+                    </div>
+                    <div className="mt-3 flex items-end justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-slate-400 mr-1">R$</span>
+                        <span className="text-2xl font-black text-slate-900">{deal.price.toFixed(2)}</span>
+                        <span className="text-xs font-bold text-slate-500 ml-1">/{deal.unit_type}</span>
+                      </div>
+                      <button className="bg-slate-100 p-2 rounded-xl text-slate-400 hover:text-blue-500 transition-colors">
+                        <Navigation className="w-5 h-5 fill-current" />
                       </button>
                     </div>
                   </div>
@@ -171,113 +195,129 @@ export default function Home() {
               ))
             )}
           </div>
-        ) : (
-          <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-slate-50">
-             <div className="w-24 h-24 bg-orange-100 rounded-full flex items-center justify-center mb-4">
-                <User className="w-12 h-12 text-orange-600" />
-             </div>
-             <h2 className="text-xl font-bold text-slate-800">Seu Perfil de Caçador</h2>
-             <p className="text-slate-500 mt-2 mb-6 text-sm">Entre para começar a ganhar XP e medalhas salvando a comunidade!</p>
-             <button className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold">Acessar com Email</button>
-          </div>
         )}
       </section>
 
-      {/* Modal de Registro */}
+      {/* Modal - Professional Form */}
       {isRegistering && (
-        <div className="fixed inset-0 z-[100] bg-white animate-in slide-in-from-bottom duration-300 flex flex-col">
-          <div className="p-4 border-b flex items-center justify-between">
-            <button onClick={() => setIsRegistering(false)} className="text-slate-500 font-medium">Cancelar</button>
-            <h2 className="font-bold">Nova Promoção</h2>
-            <button 
-              onClick={handlePost} 
-              disabled={isLoading}
-              className="text-orange-500 font-bold disabled:opacity-50"
-            >
-              {isLoading ? 'Postando...' : 'Postar'}
-            </button>
+        <div className="fixed inset-0 z-[100] bg-white animate-in slide-in-from-bottom duration-500 flex flex-col">
+          <div className="px-6 py-4 border-b flex items-center justify-between bg-slate-50/50">
+            <button onClick={() => setIsRegistering(false)} className="text-slate-400 font-bold text-sm uppercase tracking-widest">Fechar</button>
+            <h2 className="font-black text-slate-800 uppercase tracking-tight">Postar Oferta</h2>
+            <div className="w-12"></div>
           </div>
-          <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-             <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">O que você encontrou?</label>
+          
+          <div className="flex-1 p-8 space-y-8 overflow-y-auto">
+             {/* Product Details */}
+             <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                    <Tag className="w-4 h-4" />
+                  </div>
+                  <h3 className="font-black text-slate-800 uppercase text-sm tracking-widest">O Produto</h3>
+                </div>
+                
                 <input 
                   value={itemName} 
                   onChange={(e) => setItemName(e.target.value)}
                   type="text" 
-                  placeholder="Ex: Gasolina Comum, Leite Integral..." 
-                  className="w-full p-4 bg-slate-100 rounded-xl focus:ring-2 ring-orange-500 outline-none" 
+                  placeholder="Nome do produto (ex: Cerveja Skol 350ml)" 
+                  className="w-full p-5 bg-slate-50 rounded-3xl text-lg font-bold text-slate-800 placeholder:text-slate-300 border-2 border-transparent focus:border-blue-500 outline-none transition-all" 
                 />
+
+                <div className="flex gap-4">
+                  <div className="flex-1 relative">
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">R$</span>
+                    <input 
+                      value={price} 
+                      onChange={(e) => setPrice(e.target.value)}
+                      type="number" 
+                      step="0.01" 
+                      placeholder="0.00" 
+                      className="w-full p-5 pl-12 bg-slate-50 rounded-3xl text-2xl font-black text-slate-800 focus:border-blue-500 border-2 border-transparent outline-none transition-all" 
+                    />
+                  </div>
+                  <select 
+                    value={unitType} 
+                    onChange={(e) => setUnitType(e.target.value)}
+                    className="w-40 p-5 bg-slate-50 rounded-3xl font-bold text-slate-600 focus:border-blue-500 border-2 border-transparent outline-none appearance-none cursor-pointer"
+                  >
+                    <option value="unidade">Unidade</option>
+                    <option value="litro">por Litro</option>
+                    <option value="kg">por Kg</option>
+                    <option value="caixa">por Caixa</option>
+                  </select>
+                </div>
              </div>
-             <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">Onde? (Nome do Local)</label>
+
+             {/* Location Details */}
+             <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <h3 className="font-black text-slate-800 uppercase text-sm tracking-widest">O Estabelecimento</h3>
+                </div>
+                
                 <input 
                   value={spotName} 
                   onChange={(e) => setSpotName(e.target.value)}
                   type="text" 
-                  placeholder="Ex: Posto Shell, Angeloni Centro..." 
-                  className="w-full p-4 bg-slate-100 rounded-xl focus:ring-2 ring-orange-500 outline-none" 
+                  placeholder="Nome do Local (ex: Posto Ipiranga)" 
+                  className="w-full p-5 bg-slate-50 rounded-3xl text-lg font-bold text-slate-800 placeholder:text-slate-300 border-2 border-transparent focus:border-orange-500 outline-none transition-all" 
                 />
+
+                <select 
+                  value={spotCategory} 
+                  onChange={(e) => setSpotCategory(e.target.value)}
+                  className="w-full p-5 bg-slate-50 rounded-3xl font-bold text-slate-600 border-2 border-transparent focus:border-orange-500 outline-none"
+                >
+                  <option value="mercado">🛒 Supermercado</option>
+                  <option value="posto">⛽ Posto de Gasolina</option>
+                  <option value="farmacia">💊 Farmácia</option>
+                  <option value="roupas">👗 Vestuário</option>
+                  <option value="restaurante">🍔 Alimentação</option>
+                </select>
              </div>
-             <div className="grid grid-cols-2 gap-4">
-               <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">Preço (R$)</label>
-                  <input 
-                    value={price} 
-                    onChange={(e) => setPrice(e.target.value)}
-                    type="number" 
-                    step="0.01" 
-                    placeholder="0,00" 
-                    className="w-full p-4 bg-slate-100 rounded-xl focus:ring-2 ring-orange-500 outline-none" 
-                  />
-               </div>
-               <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">Categoria</label>
-                  <select 
-                    value={category} 
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full p-4 bg-slate-100 rounded-xl focus:ring-2 ring-orange-500 outline-none appearance-none"
-                  >
-                    <option value="mercado">Mercado</option>
-                    <option value="posto">Posto</option>
-                    <option value="atacado">Atacado</option>
-                    <option value="outro">Outro</option>
-                  </select>
-               </div>
+
+             {/* Photo (Fake) */}
+             <div className="border-4 border-dashed border-slate-100 rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-slate-300 hover:text-blue-400 hover:bg-slate-50 transition-all cursor-pointer group">
+                <Camera className="w-12 h-12 mb-3 group-hover:scale-110 transition-transform" />
+                <span className="font-black uppercase text-xs tracking-widest">Tirar foto do cupom</span>
+                <span className="text-[10px] mt-1 font-bold">+50 XP EXTRA</span>
              </div>
-             <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">Foto do Cupom (XP Dobrado!)</label>
-                <div className="border-2 border-dashed border-slate-200 rounded-2xl h-40 flex flex-col items-center justify-center text-slate-400 gap-2">
-                   <Camera className="w-8 h-8" />
-                   <span className="text-xs font-medium">Toque para tirar foto</span>
-                </div>
-             </div>
-             <p className="text-[10px] text-slate-400 text-center">Localização será salva via GPS: {userPos ? 'Ativada ✅' : 'Buscando... ⏳'}</p>
+          </div>
+
+          <div className="p-8 bg-white border-t">
+             <button 
+              onClick={handlePost}
+              disabled={isLoading}
+              className="w-full bg-[#458CFF] hover:bg-[#3476E3] disabled:bg-slate-300 text-white py-6 rounded-[2rem] font-black text-xl shadow-[0_12px_40px_rgba(69,140,255,0.4)] active:scale-95 transition-all flex items-center justify-center gap-3"
+             >
+               {isLoading ? <Loader2 className="animate-spin" /> : 'CONFIRMAR ALERTA'}
+             </button>
+             <p className="text-[10px] text-slate-300 text-center mt-6 font-bold uppercase tracking-[0.2em]">Sua localização será salva via GPS</p>
           </div>
         </div>
       )}
 
-      {/* Navegação Inferior */}
-      <nav className="bg-white border-t px-6 py-3 flex justify-between items-center z-50">
+      {/* Footer Navigation (Waze Style) */}
+      <nav className="bg-white border-t px-10 py-5 flex justify-around items-center z-[60] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
         <button 
           onClick={() => setActiveTab('map')}
-          className={`flex flex-col items-center gap-1 ${activeTab === 'map' ? 'text-orange-500' : 'text-slate-400'}`}
+          className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'map' ? 'text-blue-500' : 'text-slate-300'}`}
         >
-          <MapIcon className="w-6 h-6" />
-          <span className="text-[10px] font-medium uppercase tracking-wider">Mapa</span>
+          <MapIcon className={`w-7 h-7 ${activeTab === 'map' ? 'fill-current opacity-20 absolute' : ''}`} />
+          <MapIcon className="w-7 h-7 relative" />
+          <span className="text-[10px] font-black uppercase tracking-widest">Mapa</span>
         </button>
+        <div className="w-px h-6 bg-slate-100"></div>
         <button 
           onClick={() => setActiveTab('deals')}
-          className={`flex flex-col items-center gap-1 ${activeTab === 'deals' ? 'text-orange-500' : 'text-slate-400'}`}
+          className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'deals' ? 'text-blue-500' : 'text-slate-300'}`}
         >
-          <Search className="w-6 h-6" />
-          <span className="text-[10px] font-medium uppercase tracking-wider">Lista</span>
-        </button>
-        <button 
-          onClick={() => setActiveTab('profile')}
-          className={`flex flex-col items-center gap-1 ${activeTab === 'profile' ? 'text-orange-500' : 'text-slate-400'}`}
-        >
-          <User className="w-6 h-6" />
-          <span className="text-[10px] font-medium uppercase tracking-wider">Perfil</span>
+          <Search className="w-7 h-7" />
+          <span className="text-[10px] font-black uppercase tracking-widest">Radar</span>
         </button>
       </nav>
     </main>
